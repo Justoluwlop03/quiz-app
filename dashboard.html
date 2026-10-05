@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}Admin dashboard · Quizbank{% endblock %}
+{% block content %}
+<div class="admin-dashboard">
+  <header class="admin-hero">
+    <div><div class="eyebrow">QUIZBANK · CONTENT STUDIO</div><h1>Question bank</h1><p class="muted">Build, organize, and maintain your quiz library.</p></div>
+    <div class="admin-hero-actions"><span class="hero-question-count">{{ count }} questions</span><details class="delete-all-disclosure admin-top-delete" {% if not count %}data-disabled="true"{% endif %}><summary class="button danger-outline" {% if not count %}aria-disabled="true"{% endif %}>Delete all questions</summary><div class="delete-all-backdrop"><section class="confirm-modal delete-all-modal" role="dialog" aria-labelledby="top-delete-title" aria-describedby="top-delete-description"><div class="eyebrow">CLEAR QUESTION BANK</div><h2 id="top-delete-title">Delete all questions?</h2><p id="top-delete-description" class="muted">This will permanently delete all {{ count }} questions from your library. This action cannot be undone.</p><div class="modal-actions"><a class="button secondary" href="{{ url_for('dashboard') }}">Cancel</a><form method="post" action="{{ url_for('delete_all_questions') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button danger-submit" type="submit">Delete all {{ count }} questions</button></form></div></section></div></details></div>
+  </header>
+
+  <div class="admin-stats" aria-label="Question bank overview">
+    <article class="admin-stat"><span class="stat-icon">▦</span><div><span class="stat-label">TOTAL QUESTIONS</span><strong>{{ count }}</strong><span class="stat-foot">In your question bank</span></div></article>
+    <article class="admin-stat"><span class="stat-icon review-icon">◷</span><div><span class="stat-label">NEEDS REVIEW</span><strong>{{ issues|length }}</strong><span class="stat-foot">Unresolved import issues</span></div></article>
+    <article class="admin-stat"><span class="stat-icon library-icon">⌕</span><div><span class="stat-label">CURRENT VIEW</span><strong>{{ questions|length }}</strong><span class="stat-foot">Questions matching your search</span></div></article>
+  </div>
+
+  <div class="admin-section-heading"><div><div class="eyebrow">ADD TO YOUR LIBRARY</div><h2>Question intake</h2></div><p class="muted">Import a PDF or create a question by hand.</p></div>
+  <div class="admin-grid admin-intake">
+    <section class="panel admin-card import-card">
+      <div class="admin-card-heading"><span class="admin-card-icon">↑</span><div><div class="eyebrow">BULK IMPORT</div><h2>Upload a question bank</h2></div></div>
+      <p class="muted">Import text-based PDFs. Questions that need attention will appear in the review queue.</p>
+      <form method="post" action="{{ url_for('upload_pdf') }}" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>PDF file<input type="file" name="pdf" accept="application/pdf,.pdf" required></label>
+        <div class="form-grid"><label>Category<input name="category" placeholder="e.g. Biology"></label><label>Difficulty<select name="difficulty"><option value="">Unspecified</option><option>Easy</option><option>Medium</option><option>Hard</option></select></label></div>
+        <button class="button primary" type="submit">Import questions <span aria-hidden="true">→</span></button>
+      </form>
+    </section>
+    <section class="panel admin-card manual-card">
+      <div class="admin-card-heading"><span class="admin-card-icon manual-icon">＋</span><div><div class="eyebrow">SINGLE ENTRY</div><h2>Add a question</h2></div></div>
+      <p class="muted">Write a question with four choices and set its answer.</p>
+      <form method="post" action="{{ url_for('add_question') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>Question<textarea name="question_text" placeholder="Enter your question…" required></textarea></label>
+        <div class="form-grid option-grid">{% for l in 'ABCD' %}<label>Option {{ l }}<input name="option_{{ l|lower }}" required></label>{% endfor %}</div>
+        <div class="form-grid"><label>Correct answer<select name="correct_answer"><option>A</option><option>B</option><option>C</option><option>D</option></select></label><label>Category<input name="category" placeholder="Optional"></label><label>Difficulty<select name="difficulty"><option value="">Unspecified</option><option>Easy</option><option>Medium</option><option>Hard</option></select></label></div>
+        <button class="button secondary" type="submit">Add question <span aria-hidden="true">＋</span></button>
+      </form>
+    </section>
+  </div>
+
+  <section class="admin-section admin-content-section">
+    <div class="admin-section-heading review-heading"><div><div class="eyebrow">QUALITY CONTROL</div><h2>Import review <span class="pill">{{ issues|length }}</span></h2></div><div class="review-tools"><p class="muted">Check any text that could not be imported cleanly.</p><details class="delete-all-disclosure review-delete" {% if not issues %}data-disabled="true"{% endif %}><summary class="button danger-outline" {% if not issues %}aria-disabled="true"{% endif %}>Delete all review items</summary><div class="delete-all-backdrop"><section class="confirm-modal delete-all-modal" role="dialog" aria-labelledby="review-delete-title" aria-describedby="review-delete-description"><div class="eyebrow">CLEAR REVIEW QUEUE</div><h2 id="review-delete-title">Delete all review items?</h2><p id="review-delete-description" class="muted">This will permanently remove all {{ issues|length }} unresolved import review items. Your question bank will not be changed.</p><div class="modal-actions"><a class="button secondary" href="{{ url_for('dashboard') }}">Cancel</a><form method="post" action="{{ url_for('delete_unresolved_issues') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button danger-submit" type="submit">Delete all review items</button></form></div></section></div></details></div></div>
+    {% if issues %}
+    <div class="table-wrap admin-table-wrap"><table class="admin-table"><thead><tr><th>Source</th><th>Page</th><th>Reason</th><th>Extracted text</th><th>Action</th></tr></thead><tbody>
+      {% for i in issues %}<tr><td><span class="source-name">{{ i.source_pdf }}</span></td><td>{{ i.page_number or '—' }}</td><td><span class="issue-reason">{{ i.reason }}</span></td><td><details class="text-details"><summary>View text</summary><pre>{{ i.raw_text }}</pre></details></td><td><form method="post" action="{{ url_for('resolve_issue', iid=i.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="text-button" type="submit">Mark reviewed</button></form></td></tr>{% endfor %}
+    </tbody></table></div>
+    {% else %}<div class="admin-empty"><span class="empty-check">✓</span><div><strong>All caught up</strong><p class="muted">No imported questions need review.</p></div></div>{% endif %}
+  </section>
+
+  <section class="admin-section admin-content-section">
+    <div class="admin-section-heading library-heading"><div><div class="eyebrow">QUESTION LIBRARY</div><h2>All questions <span class="pill neutral-pill">{{ questions|length }}</span></h2></div>
+      <div class="library-actions"><form method="get" action="{{ url_for('dashboard') }}" class="search-form"><label class="sr-only" for="question-search">Search questions</label><input id="question-search" name="search" class="search" placeholder="Search questions…" value="{{ search }}"><button class="button secondary" type="submit">Search</button>{% if search %}<a class="clear-search" href="{{ url_for('dashboard') }}">Clear</a>{% endif %}</form>
+      <details class="delete-all-disclosure" {% if not count %}data-disabled="true"{% endif %}><summary class="button danger-outline" {% if not count %}aria-disabled="true"{% endif %}>Delete all</summary><div class="delete-all-backdrop"><section class="confirm-modal delete-all-modal" role="dialog" aria-labelledby="delete-all-title" aria-describedby="delete-all-description"><div class="eyebrow">CLEAR QUESTION BANK</div><h2 id="delete-all-title">Delete all questions?</h2><p id="delete-all-description" class="muted">This will permanently delete all {{ count }} questions from your library. This action cannot be undone.</p><div class="modal-actions"><a class="button secondary" href="{{ url_for('dashboard') }}">Cancel</a><form method="post" action="{{ url_for('delete_all_questions') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button danger-submit" type="submit">Delete all questions</button></form></div></section></div></details></div>
+    </div>
+    {% if questions %}
+    <div class="table-wrap admin-table-wrap library-table-wrap"><table class="admin-table library-table"><thead><tr><th>Question</th><th>Answer</th><th>Category</th><th>Source · page</th><th>Actions</th></tr></thead><tbody>
+      {% for q in questions %}
+      <tr class="question-row">
+        <td class="question-cell"><div class="question-preview">{{ q.question_text }}</div><details class="edit-details"><summary class="text-button">Edit question</summary><form method="post" action="{{ url_for('edit_question', qid=q.id) }}" class="edit-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>Question<textarea name="question_text">{{ q.question_text }}</textarea></label>
+          <div class="form-grid">{% for l in 'ABCD' %}<label>Option {{ l }}<input name="option_{{ l|lower }}" value="{{ q|attr('option_' ~ (l|lower)) }}"></label>{% endfor %}<label>Correct answer(s)<input name="correct_answer" value="{{ q.correct_answer }}" pattern="[A-D](,[A-D])*" title="For example A or A,C,D"></label><label>Category<input name="category" value="{{ q.category or '' }}"></label><label>Difficulty<input name="difficulty" value="{{ q.difficulty or '' }}"></label></div>
+          <button class="button secondary" type="submit">Save changes</button>
+        </form></details></td>
+        <td><span class="answer-chip">{{ q.correct_answer }}</span></td><td><span class="category-name">{{ q.category or 'Uncategorized' }}</span>{% if q.difficulty %}<span class="difficulty-tag">{{ q.difficulty }}</span>{% endif %}</td><td><span class="source-name">{{ q.source_pdf }}</span><span class="source-page">Page {{ q.page_number or '—' }}</span></td>
+        <td><details class="row-delete-disclosure"><summary class="text-button danger">Delete</summary><div class="row-delete-card"><strong>Delete this question?</strong><form method="post" action="{{ url_for('delete_question', qid=q.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button danger-submit" type="submit">Confirm delete</button></form></div></details></td>
+      </tr>
+      {% endfor %}
+    </tbody></table></div>
+    {% else %}<div class="admin-empty"><span class="empty-search">⌕</span><div><strong>{% if search %}No matching questions{% else %}Your question library is empty{% endif %}</strong><p class="muted">{% if search %}Try a different search term or clear your search.{% else %}Import a PDF or add a question above to get started.{% endif %}</p></div></div>{% endif %}
+  </section>
+</div>
+{% endblock %}
