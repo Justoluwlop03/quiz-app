@@ -1,0 +1,37 @@
+{% extends 'base.html' %}{% block title %}Start a quiz · Quizbank{% endblock %}{% block content %}
+<section class="hero">
+    <div class="eyebrow">YOUR STUDY SPACE</div>
+    <h1>Turn your question bank<br>into a <span>sharper study session.</span></h1>
+    <p>Choose a topic, set your pace, and see what you know.</p>
+</section>
+<section class="panel start-panel">
+    <div>
+        <div class="eyebrow">BUILD YOUR QUIZ</div>
+        <h2>Ready when you are</h2>
+        <p class="muted">Questions are selected at random from the imported question bank.</p>
+    </div>
+    <form method="post" action="{{ url_for('start_quiz') }}"><input type="hidden" name="csrf_token"
+            value="{{ csrf_token() }}">
+        <div class="form-grid"><label>Questions<select name="count">{% for n in [5,10,20,50,100] %}<option
+                        value="{{ n }}" {% if n==10 %}selected{% endif %}>{{ n }} questions</option>{% endfor
+                    %}</select></label><label>Category<select name="category">
+                    <option value="">All categories</option>{% for c in categories %}<option value="{{ c }}">{{ c }}
+                    </option>{% endfor %}
+                </select></label><label>Difficulty<select name="difficulty">
+                    <option value="">Any difficulty</option>
+                    <option>Easy</option>
+                    <option>Medium</option>
+                    <option>Hard</option>
+                </select></label><label>Timer<select name="minutes">
+                    <option value="0">No timer</option>
+                    <option value="15">15 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="60">60 minutes</option>
+                </select></label></div><button class="button primary full">Start quiz <span>→</span></button>
+    </form>
+</section>
+<section class="note"><span>✦</span>
+    <div><strong>Learn at your own pace</strong>
+        <p>Your progress is saved as you go, so a refresh won’t cost you your answers.</p>
+    </div>
+</section>{% endblock %}
